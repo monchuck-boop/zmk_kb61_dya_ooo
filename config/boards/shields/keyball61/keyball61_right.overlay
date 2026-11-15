@@ -1,4 +1,3 @@
-# Split（左右通信）機能を無効化し、右手単体で動かす
 CONFIG_ZMK_SPLIT=n
 
 # ZMK Studio / DYA Studio 機能を明示的に有効化
