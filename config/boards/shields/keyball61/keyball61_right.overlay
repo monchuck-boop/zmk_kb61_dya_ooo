@@ -8,10 +8,10 @@
 
 / {
     chosen {
-        zmk,kscan = &kscan0;
+        zmk,kscan = &kscan_composite;
     };
 
-    kscan0: kscan_composite {
+    kscan_composite: kscan_composite {
         compatible = "zmk,kscan-composite";
         wakeup-source;
         rows = <5>;
@@ -70,6 +70,10 @@
             , <&pro_micro 21 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             ;
     };
+};
+
+&keyball_physical_layout {
+    kscan = <&kscan_composite>;
 };
 
 &default_transform {
