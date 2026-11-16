@@ -5,10 +5,13 @@
 #include <zephyr/drivers/kscan.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include <zmk/debounce.h>
-
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
+
+struct duplex_key_state {
+    bool pressed;
+    uint8_t counter;
+};
 
 struct kscan_duplex_config {
     const struct gpio_dt_spec *rows;
@@ -24,8 +27,7 @@ struct kscan_duplex_data {
     const struct device *dev;
     kscan_callback_t callback;
     struct k_work_delayable work;
-    struct zmk_debounce_state *states;
-    int64_t scan_time;
+    struct duplex_key_state *states;
 };
 
 static void kscan_duplex_set_idle(const struct kscan_duplex_config *cfg) {
@@ -37,16 +39,42 @@ static void kscan_duplex_set_idle(const struct kscan_duplex_config *cfg) {
     }
 }
 
-static void kscan_duplex_read(const struct device *dev) {
+static void kscan_duplex_update_state(const struct device *dev, size_t r, size_t c, bool raw_pressed) {
     const struct kscan_duplex_config *cfg = dev->config;
     struct kscan_duplex_data *data = dev->data;
     const size_t total_cols = cfg->col_count * 2;
-    const struct zmk_debounce_config db_cfg = {
-        .debounce_press_ms = cfg->debounce_press_ms,
-        .debounce_release_ms = cfg->debounce_release_ms,
-    };
+    struct duplex_key_state *st = &data->states[r * total_cols + c];
 
-    data->scan_time = k_uptime_get();
+    uint8_t threshold = (uint8_t)((raw_pressed ? cfg->debounce_press_ms : cfg->debounce_release_ms) /
+                                  (cfg->poll_period_ms > 0 ? cfg->poll_period_ms : 1));
+    if (threshold < 1) {
+        threshold = 1;
+    }
+
+    if (raw_pressed != st->pressed) {
+        st->counter++;
+        if (st->counter >= threshold) {
+            st->pressed = raw_pressed;
+            st->counter = 0;
+            if (data->callback) {
+                data->callback(dev, r, c, st->pressed);
+            }
+        }
+    } else {
+        st->counter = 0;
+    }
+}
+
+static void kscan_duplex_read(const struct device *dev) {
+    const struct struct_cfg_alias {
+        const struct gpio_dt_spec *rows;
+        size_t row_count;
+        const struct gpio_dt_spec *cols;
+        size_t col_count;
+        int32_t debounce_press_ms;
+        int32_t debounce_release_ms;
+        int32_t poll_period_ms;
+    } *cfg = dev->config;
 
     /* Phase 1: row2col (論理列 0 .. col_count - 1 : 左側の列) */
     for (size_t c = 0; c < cfg->col_count; c++) {
@@ -57,13 +85,12 @@ static void kscan_duplex_read(const struct device *dev) {
         k_busy_wait(5);
         for (size_t c = 0; c < cfg->col_count; c++) {
             bool pressed = gpio_pin_get_dt(&cfg->cols[c]) > 0;
-            size_t idx = r * total_cols + c;
-            zmk_debounce_update(&data->states[idx], pressed, cfg->poll_period_ms, &db_cfg);
+            kscan_duplex_update_state(dev, r, c, pressed);
         }
         gpio_pin_configure_dt(&cfg->rows[r], GPIO_INPUT);
     }
 
-    kscan_duplex_set_idle(cfg);
+    kscan_duplex_set_idle((const struct kscan_duplex_config *)cfg);
 
     /* Phase 2: col2row (論理列 col_count .. 2*col_count - 1 : 右側の列) */
     for (size_t r = 0; r < cfg->row_count; r++) {
@@ -74,25 +101,12 @@ static void kscan_duplex_read(const struct device *dev) {
         k_busy_wait(5);
         for (size_t r = 0; r < cfg->row_count; r++) {
             bool pressed = gpio_pin_get_dt(&cfg->rows[r]) > 0;
-            size_t idx = r * total_cols + (cfg->col_count + c);
-            zmk_debounce_update(&data->states[idx], pressed, cfg->poll_period_ms, &db_cfg);
+            kscan_duplex_update_state(dev, r, cfg->col_count + c, pressed);
         }
         gpio_pin_configure_dt(&cfg->cols[c], GPIO_INPUT);
     }
 
-    kscan_duplex_set_idle(cfg);
-
-    for (size_t r = 0; r < cfg->row_count; r++) {
-        for (size_t c = 0; c < total_cols; c++) {
-            size_t idx = r * total_cols + c;
-            if (zmk_debounce_get_changed(&data->states[idx])) {
-                bool pressed = zmk_debounce_is_pressed(&data->states[idx]);
-                if (data->callback) {
-                    data->callback(dev, r, c, pressed);
-                }
-            }
-        }
-    }
+    kscan_duplex_set_idle((const struct kscan_duplex_config *)cfg);
 }
 
 static void kscan_duplex_work_handler(struct k_work *work) {
@@ -147,7 +161,7 @@ static const struct kscan_driver_api kscan_duplex_api = {
         DT_INST_FOREACH_PROP_ELEM_SEP(n, row_gpios, GPIO_DT_SPEC_GET_BY_IDX, (, ))};               \
     static const struct gpio_dt_spec kscan_duplex_cols_##n[] = {                                   \
         DT_INST_FOREACH_PROP_ELEM_SEP(n, col_gpios, GPIO_DT_SPEC_GET_BY_IDX, (, ))};               \
-    static struct zmk_debounce_state                                                               \
+    static struct duplex_key_state                                                                 \
         kscan_duplex_states_##n[DT_INST_PROP_LEN(n, row_gpios) * DT_INST_PROP_LEN(n, col_gpios) *  \
                                 2];                                                                \
     static const struct kscan_duplex_config kscan_duplex_config_##n = {                            \
@@ -163,7 +177,7 @@ static const struct kscan_driver_api kscan_duplex_api = {
         .states = kscan_duplex_states_##n,                                                         \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(n, kscan_duplex_init, NULL, &kscan_duplex_data_##n,                      \
-                          &kscan_duplex_config_##n, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,       \
-                          &kscan_duplex_api);
+                          &kscan_duplex_config_##n, POST_KERNEL,                                   \
+                          CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, &kscan_duplex_api);
 
 DT_INST_FOREACH_STATUS_OKAY(KSCAN_DUPLEX_INIT)
