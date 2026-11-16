@@ -1,0 +1,22 @@
+description: GPIO Duplex Matrix Kscan Driver (col2row + row2col)
+
+compatible: "zmk,kscan-gpio-duplex"
+
+include: kscan.yaml
+
+properties:
+  row-gpios:
+    type: phandle-array
+    required: true
+  col-gpios:
+    type: phandle-array
+    required: true
+  debounce-press-ms:
+    type: int
+    default: 5
+  debounce-release-ms:
+    type: int
+    default: 5
+  poll-period-ms:
+    type: int
+    default: 10
