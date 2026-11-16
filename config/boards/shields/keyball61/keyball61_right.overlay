@@ -19,15 +19,15 @@
         compatible = "zmk,kscan-composite";
         wakeup-source;
         rows = <5>;
-        columns = <7>;
+        columns = <8>;
 
-        /* 順方向スキャン（右側の列：col2row） */
+        /* 順方向スキャン（右側の3列：col2row） */
         col2row {
             kscan = <&kscan_col2row>;
-            col-offset = <4>;
+            col-offset = <5>;
         };
 
-        /* 逆方向スキャン（左側の4列：row2col） */
+        /* 逆方向スキャン（左側の列＋親指列：row2col） */
         row2col {
             kscan = <&kscan_row2col>;
             col-offset = <0>;
@@ -68,7 +68,8 @@
             ;
 
         col-gpios
-            = <&pro_micro 18 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            = <&pro_micro 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&pro_micro 18 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&pro_micro 19 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&pro_micro 20 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&pro_micro 21 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
