@@ -1,5 +1,0 @@
-if(CONFIG_ZMK_KSCAN_GPIO_DUPLEX)
-  zephyr_library()
-  zephyr_library_sources(src/kscan_gpio_duplex.c)
-  zephyr_library_link_libraries(zmk)
-endif()
