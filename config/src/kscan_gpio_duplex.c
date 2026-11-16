@@ -163,7 +163,7 @@ static const struct kscan_driver_api kscan_duplex_api = {
         .states = kscan_duplex_states_##n,                                                         \
     };                                                                                             \
     DEVICE_DT_INST_DEFINE(n, kscan_duplex_init, NULL, &kscan_duplex_data_##n,                      \
-                          &kscan_duplex_config_##n, POST_KERNEL, CONFIG_KSCAN_INIT_PRIORITY,       \
+                          &kscan_duplex_config_##n, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT,       \
                           &kscan_duplex_api);
 
 DT_INST_FOREACH_STATUS_OKAY(KSCAN_DUPLEX_INIT)
