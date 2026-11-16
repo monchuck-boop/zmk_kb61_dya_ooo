@@ -1,4 +1,0 @@
-config ZMK_KSCAN_GPIO_DUPLEX
-    bool "GPIO Duplex Matrix Kscan Driver"
-    default y
-    depends on GPIO
