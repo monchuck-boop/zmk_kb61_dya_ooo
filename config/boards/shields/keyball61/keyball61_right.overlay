@@ -6,6 +6,10 @@
 
 #include "keyball61.dtsi"
 
+&kscan0 {
+    status = "disabled";
+};
+
 / {
     chosen {
         zmk,kscan = &kscan_composite;
