@@ -19,15 +19,15 @@
         compatible = "zmk,kscan-composite";
         wakeup-source;
         rows = <5>;
-        columns = <8>;
+        columns = <7>;
 
-        /* 逆方向スキャン（左側の列：N6, N7, N8, N9 ＋ 親指） */
+        /* 逆方向スキャン（左側の列：col = 0, 1, 2, 3） */
         row2col {
             kscan = <&kscan_row2col>;
             col-offset = <0>;
         };
 
-        /* 順方向スキャン（右側の列：N0, BS ＋ 右親指） */
+        /* 順方向スキャン（右側の列：col = 4, 5, 6） */
         col2row {
             kscan = <&kscan_col2row>;
             col-offset = <4>;
@@ -48,10 +48,10 @@
             ;
 
         col-gpios
-            = <&pro_micro 18 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&pro_micro 19 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&pro_micro 20 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&pro_micro 21 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            = <&pro_micro 0  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&pro_micro 1  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&pro_micro 15 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&pro_micro 18 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             ;
     };
 
@@ -69,8 +69,7 @@
             ;
 
         col-gpios
-            = <&pro_micro 18 GPIO_ACTIVE_HIGH>
-            , <&pro_micro 19 GPIO_ACTIVE_HIGH>
+            = <&pro_micro 19 GPIO_ACTIVE_HIGH>
             , <&pro_micro 20 GPIO_ACTIVE_HIGH>
             , <&pro_micro 21 GPIO_ACTIVE_HIGH>
             ;
@@ -82,7 +81,7 @@
 };
 
 &default_transform {
-    col-offset = <7>;
+    col-offset = <6>;
 };
 
 &pinctrl {
