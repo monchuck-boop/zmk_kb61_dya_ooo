@@ -3,3 +3,7 @@ config SHIELD_KEYBALL61_LEFT
 
 config SHIELD_KEYBALL61_RIGHT
     def_bool $(shields_list_contains,keyball61_right)
+
+config ZMK_KSCAN_GPIO_DUPLEX
+    bool
+    default y
